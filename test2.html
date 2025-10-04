@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAFTAAR - Aviation Safety Platform</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Header Styles */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 40px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .login-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .login-section input {
+            padding: 8px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .login-section input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .login-btn {
+            padding: 8px 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Main Container */
+        .main-container {
+            margin-top: 100px;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Left Sidebar */
+        .left-sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .nav-link {
+            display: block;
+            padding: 15px;
+            margin: 10px 0;
+            background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+            text-decoration: none;
+            color: #333;
+            border-radius: 10px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-link:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transition: left 0.3s;
+            z-index: -1;
+        }
+
+        .nav-link:hover {
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .nav-link:hover:before {
+            left: 0;
+        }
+
+        /* Center Content */
+        .center-content {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .map-container {
+            width: 400px;
+            height: 400px;
+            margin: 0 auto;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .coordinates {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 16px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .coordinate-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            margin: 5px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 20px;
+        }
+
+        /* Right Content */
+        .right-content {
+            width: 450px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .webcam-container {
+            width: 400px;
+            height: 400px;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 auto;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .webcam-placeholder {
+            color: white;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .camera-controls {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .camera-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .camera-btn.stop {
+            background: linear-gradient(135deg, #f44336, #da190b);
+        }
+
+        /* FOD Section */
+        .fod-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 30px 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .fod-section h2 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .fod-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .fod-card {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .fod-card h3 {
+            color: #444;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .fod-card p, .fod-card li {
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .fod-card ul {
+            padding-left: 20px;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 20px 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .contact-btn {
+            padding: 15px 50px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 18px;
+            transition: all 0.3s;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .contact-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .contact-info {
+            margin-top: 20px;
+            color: #666;
+        }
+
+        /* Modal for Work in Progress */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 15% auto;
+            padding: 40px;
+            border-radius: 15px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #667eea;
+        }
+
+        .modal h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .left-sidebar, .right-content {
+                width: 100%;
+                max-width: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="logo">RAFTAAR</div>
+        <div class="login-section">
+            <input type="text" placeholder="Username" id="username">
+            <input type="password" placeholder="Password" id="password">
+            <button class="login-btn" onclick="handleLogin()">Login</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Left Sidebar -->
+        <div class="left-sidebar">
+            <a href="#" class="nav-link" onclick="showWorkInProgress(); return false;">GEOTAGGING</a>
+            <a href="#" class="nav-link" onclick="showWorkInProgress(); return false;">CLASSIFICATION</a>
+            <a href="#" class="nav-link" onclick="showWorkInProgress(); return false;">RETURN TO LAUNCH SITE</a>
+            <a href="#" class="nav-link" onclick="showWorkInProgress(); return false;">BATTERY LEVEL</a>
+        </div>
+
+        <!-- Center Content - Map -->
+        <div class="center-content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            <div class="coordinates">
+                <span class="coordinate-badge">Latitude: <span id="lat">Loading...</span></span>
+                <span class="coordinate-badge">Longitude: <span id="lon">Loading...</span></span>
+            </div>
+        </div>
+
+        <!-- Right Content - Webcam -->
+        <div class="right-content">
+            <div class="webcam-container">
+                <video id="webcam" style="display: none;"></video>
+                <div class="webcam-placeholder" id="webcam-placeholder">
+                    <p>📷 Camera Off</p>
+                    <p style="font-size: 14px; margin-top: 10px;">Click button below to start</p>
+                </div>
+            </div>
+            <div class="camera-controls">
+                <button class="camera-btn" id="camera-toggle" onclick="toggleCamera()">Turn On Camera</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOD Section -->
+    <div class="fod-section">
+        <h2>Foreign Object Debris (FOD) in Aviation</h2>
+        
+        <div class="fod-content">
+            <div class="fod-card">
+                <h3>What is Foreign Object Debris?</h3>
+                <p>Foreign Object Debris (FOD) refers to any object, particle, or substance that is alien to an aircraft or airport environment and has the potential to cause damage to aircraft, equipment, or harm to personnel. FOD can include tools, equipment parts, paper, plastic, metal debris, stones, pavement fragments, and wildlife.</p>
+                <p>In aviation, FOD poses a significant safety risk and can result in catastrophic accidents, costly repairs, flight delays, and even loss of life. The aviation industry spends billions annually on FOD-related damage and prevention.</p>
+            </div>
+            
+            <div class="fod-card">
+                <h3>Common Sources of FOD</h3>
+                <ul>
+                    <li>Personnel items: badges, pens, coins, jewelry</li>
+                    <li>Maintenance materials: tools, fasteners, safety wire</li>
+                    <li>Airport infrastructure: concrete chunks, paint chips</li>
+                    <li>Ground support equipment: broken parts, cargo debris</li>
+                    <li>Natural sources: birds, wildlife, ice, volcanic ash</li>
+                    <li>Weather-related: stones blown by wind, standing water</li>
+                </ul>
+            </div>
+            
+            <div class="fod-card">
+                <h3>FOD Prevention Strategies</h3>
+                <ul>
+                    <li><strong>Regular Inspections:</strong> Conduct frequent runway, taxiway, and ramp inspections</li>
+                    <li><strong>FOD Containers:</strong> Place clearly marked FOD bins throughout the airport</li>
+                    <li><strong>Training Programs:</strong> Educate all personnel about FOD awareness</li>
+                    <li><strong>Tool Control:</strong> Implement strict tool accountability procedures</li>
+                    <li><strong>Clean-As-You-Go Policy:</strong> Maintain work areas free of debris</li>
+                    <li><strong>Technology Solutions:</strong> Deploy FOD detection systems and sweeping equipment</li>
+                </ul>
+            </div>
+            
+            <div class="fod-card">
+                <h3>Best Practices for FOD Management</h3>
+                <p>Effective FOD prevention requires a comprehensive approach involving all stakeholders:</p>
+                <ul>
+                    <li>Establish a FOD prevention committee with regular meetings</li>
+                    <li>Create reporting systems for FOD incidents and near-misses</li>
+                    <li>Conduct regular FOD walks with cross-functional teams</li>
+                    <li>Use magnetic bars on vehicles operating on airside</li>
+                    <li>Ensure proper storage and securing of all equipment</li>
+                    <li>Implement a rewards program for FOD reporting</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="contact-section">
+        <h2 style="color: #667eea; margin-bottom: 20px;">Get in Touch</h2>
+        <button class="contact-btn" onclick="showContactInfo()">Contact Us</button>
+        <div class="contact-info" id="contact-info" style="display: none;">
+            <p>📧 Email: info@raftaar-aviation.com</p>
+            <p>📞 Phone: +1-800-RAFTAAR</p>
+            <p>📍 Address: Aviation Safety Center, Terminal 1</p>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Work in Progress</h3>
+            <p>This feature is currently under development and will be available soon!</p>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        let map;
+        let marker;
+        let lat = 9.8469; // Karaikudi coordinates
+        let lon = 78.7870;
+
+        function initMap() {
+            map = L.map('map').setView([lat, lon], 15);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            marker = L.marker([lat, lon]).addTo(map)
+                .bindPopup('Current Location')
+                .openPopup();
+            
+            document.getElementById('lat').textContent = lat.toFixed(4);
+            document.getElementById('lon').textContent = lon.toFixed(4);
+            
+            // Try to get actual location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    lat = position.coords.latitude;
+                    lon = position.coords.longitude;
+                    map.setView([lat, lon], 15);
+                    marker.setLatLng([lat, lon]);
+                    document.getElementById('lat').textContent = lat.toFixed(4);
+                    document.getElementById('lon').textContent = lon.toFixed(4);
+                });
+            }
+        }
+
+        // Camera functionality
+        let stream = null;
+        let cameraOn = false;
+
+        async function toggleCamera() {
+            const video = document.getElementById('webcam');
+            const placeholder = document.getElementById('webcam-placeholder');
+            const button = document.getElementById('camera-toggle');
+            
+            if (!cameraOn) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    placeholder.style.display = 'none';
+                    button.textContent = 'Turn Off Camera';
+                    button.classList.add('stop');
+                    cameraOn = true;
+                } catch (err) {
+                    alert('Camera access denied or not available');
+                }
+            } else {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                video.style.display = 'none';
+                placeholder.style.display = 'flex';
+                button.textContent = 'Turn On Camera';
+                button.classList.remove('stop');
+                cameraOn = false;
+            }
+        }
+
+        // Modal functions
+        function showWorkInProgress() {
+            document.getElementById('modal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Contact function
+        function showContactInfo() {
+            const contactInfo = document.getElementById('contact-info');
+            contactInfo.style.display = contactInfo.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Login function
+        function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (username && password) {
+                alert(`Welcome, ${username}! Login successful.`);
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            } else {
+                alert('Please enter both username and password');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('modal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Initialize map when page loads
+        window.onload = function() {
+            initMap();
+        };
+    </script>
+</body>
+</html>
